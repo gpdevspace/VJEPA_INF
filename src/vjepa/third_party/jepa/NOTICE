@@ -1,0 +1,10 @@
+Vendored from https://github.com/facebookresearch/jepa (commit 51c59d518fc63c08464af6de585f78ac0c7ed4d5)
+Copyright (c) Meta Platforms, Inc. and affiliates. Licensed under CC BY-NC 4.0 (see LICENSE in this directory).
+
+Files: models/{vision_transformer,predictor,attentive_pooler}.py, models/utils/{modules,patch_embed,pos_embs}.py,
+masks/utils.py, utils/tensors.py.
+
+Modifications:
+- Imports rewritten from `src.` to `vjepa.third_party.jepa.`.
+- models/utils/modules.py: removed the CUDA-only `torch.backends.cuda.sdp_kernel()` context so attention runs on
+  MPS/CPU, and attention dropout is applied only in training mode.

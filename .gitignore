@@ -1,0 +1,21 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Model weights, datasets, and rendered outputs
+checkpoints/
+data/
+outputs/
+*.pth.tar
+*.safetensors
+*.mp4
+
+# Personal working notes, not for the repo
+docs/

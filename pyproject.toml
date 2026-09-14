@@ -1,0 +1,34 @@
+[project]
+name = "vjepa"
+version = "0.1.0"
+description = "Hands-on V-JEPA 1: frozen video features, a latent world model, and a Surprise Meter"
+readme = "README.md"
+authors = [
+    { email = "gpdevspace0910@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "av>=18.1.0",
+    "gradio>=6.27.0",
+    "matplotlib>=3.11.2",
+    "numpy>=2.5.3",
+    "pillow>=12.3.0",
+    "safetensors>=0.8.0",
+    "scikit-learn>=1.9.1",
+    "scipy>=1.18.1",
+    "torch>=2.14.0",
+    "tqdm>=4.70.1",
+    "transformers>=5.17.0",
+]
+
+[project.scripts]
+vjepa = "vjepa.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.12.6,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
