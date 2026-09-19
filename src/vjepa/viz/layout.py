@@ -63,6 +63,8 @@ class Scene:
     bands: Sequence[tuple[int, int]] = field(default_factory=list)  # [start, end) frame spans shaded on the plot
     band_label: str = ""
     footer: str = ""
+    y_range: tuple[float, float] | None = None  # fix the plot's y-axis instead of auto-scaling, and label it
+    y_axis_label: str = ""
 
 
 def _fit(img: np.ndarray, w: int, h: int) -> Image.Image:
@@ -107,13 +109,17 @@ def compose(scene: Scene, width: int = 1080, height: int = 1350, theme: Theme = 
     top = 190
     plot_top = top + panel_h + 120  # leaves room for panel labels, then the legend row
     plot_h = 260 if scene.series else 0
-    plot_left, plot_right = pad + 10, width - pad - 10
+    plot_left = pad + (86 if scene.y_range else 10)  # room for tick labels when the axis is absolute
+    plot_right = width - pad - 10
 
-    finite = [s.values[np.isfinite(s.values)] for s in scene.series]
-    lo = min((v.min() for v in finite if len(v)), default=0.0)
-    hi = max((v.max() for v in finite if len(v)), default=1.0)
-    margin = 0.08 * (hi - lo or 1.0)
-    lo, hi = lo - margin, hi + margin
+    if scene.y_range is not None:
+        lo, hi = scene.y_range
+    else:
+        finite = [s.values[np.isfinite(s.values)] for s in scene.series]
+        lo = min((v.min() for v in finite if len(v)), default=0.0)
+        hi = max((v.max() for v in finite if len(v)), default=1.0)
+        margin = 0.08 * (hi - lo or 1.0)
+        lo, hi = lo - margin, hi + margin
 
     def xy(i: int, v: float) -> tuple[float, float]:
         x = plot_left + (plot_right - plot_left) * i / max(1, n_frames - 1)
@@ -135,12 +141,19 @@ def compose(scene: Scene, width: int = 1080, height: int = 1350, theme: Theme = 
             for start, end in scene.bands:
                 (x0, _), (x1, _) = xy(start, lo), xy(end - 1, lo)
                 draw.rectangle([x0, plot_top, max(x1, x0 + 2), plot_top + plot_h], fill=theme.band)
+            if scene.y_range is not None:
+                for v in np.linspace(lo, hi, 5):
+                    _, gy = xy(0, v)
+                    draw.line([(plot_left, gy), (plot_right, gy)], fill=theme.grid, width=1)
+                    draw.text((plot_left - 12, gy), f"{v:.2f}", font=small_f, fill=theme.muted, anchor="rm")
+                if scene.y_axis_label:
+                    draw.text((pad, plot_top - 40), scene.y_axis_label, font=small_f, fill=theme.muted)
             draw.line([(plot_left, plot_top + plot_h), (plot_right, plot_top + plot_h)], fill=theme.grid, width=2)
             for frame, text in scene.markers:
                 x, _ = xy(frame, lo)
                 draw.line([(x, plot_top), (x, plot_top + plot_h)], fill=theme.grid, width=2)
                 draw.text((x + 6, plot_top), text, font=small_f, fill=theme.muted)
-            legend_x = plot_left
+            legend_x = plot_left if not scene.y_axis_label else plot_left + 150
             for s in scene.series:
                 pts = [xy(i, v) for i, v in enumerate(s.values[: t + 1]) if np.isfinite(v)]
                 if len(pts) > 1:
@@ -153,13 +166,14 @@ def compose(scene: Scene, width: int = 1080, height: int = 1350, theme: Theme = 
             if scene.bands and scene.band_label:
                 draw.rectangle([legend_x, plot_top - 34, legend_x + 22, plot_top - 14], fill=theme.band)
                 draw.text((legend_x + 30, plot_top - 40), scene.band_label, font=small_f, fill=theme.muted)
-            axis_note = "higher = more surprised"
-            draw.text(
-                (plot_right - draw.textlength(axis_note, font=small_f), plot_top - 40),
-                axis_note,
-                font=small_f,
-                fill=theme.muted,
-            )
+            if not scene.y_axis_label:  # a labelled absolute axis already says which way is up
+                axis_note = "higher = more surprised"
+                draw.text(
+                    (plot_right - draw.textlength(axis_note, font=small_f), plot_top - 40),
+                    axis_note,
+                    font=small_f,
+                    fill=theme.muted,
+                )
             x, _ = xy(t, lo)
             draw.line([(x, plot_top), (x, plot_top + plot_h)], fill=theme.fg, width=2)
 
