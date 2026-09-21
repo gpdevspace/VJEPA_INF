@@ -17,7 +17,7 @@ from PIL import Image, ImageDraw
 from vjepa.data.avenue import ROOT
 from vjepa.video import read_video
 from vjepa.viz.layout import Theme, font
-from vjepa.viz.render import write_mp4
+from vjepa.viz.render import outline_mask, write_mp4
 from scripts.paint_out_runner import ERASE, STEM, paint
 
 A, B = (int(sys.argv[1]), int(sys.argv[2])) if len(sys.argv) > 2 else (300, 750)
@@ -47,13 +47,16 @@ def main() -> None:
     def compose():
         for i in range(A, B):
             canvas = Image.new("RGB", (W, H), TH.bg)
+            m = masks[0, i].astype(bool) if i < masks.shape[1] else np.zeros(frames.shape[1:3], bool)
             for k, src in enumerate((frames, painted)):
-                canvas.paste(Image.fromarray(src[i]).resize((fw, PANEL_H)), (k * fw, HEAD_H))
+                # solid red on the original; a dim outline on the right shows exactly what was erased
+                view = outline_mask(src[i], m, (255, 60, 60) if k == 0 else (120, 84, 84))
+                canvas.paste(Image.fromarray(view).resize((fw, PANEL_H)), (k * fw, HEAD_H))
             d = ImageDraw.Draw(canvas)
             d.text((14, 12), "Does the runner cause the bump? Erase them and re-score.", TH.fg, font=f_lab)
             d.text((14, 33), f"CUHK Avenue video {STEM} - first anomaly erased, second left as a control",
                    TH.muted, font=f_small)
-            for k, t in enumerate(["original", "runner erased (background median)"]):
+            for k, t in enumerate(["original (red = annotated anomaly)", "runner erased (background median)"]):
                 d.text((k * fw + 10, HEAD_H + PANEL_H - 24), t, TH.fg, font=f_small)
             d.line([(fw, HEAD_H), (fw, HEAD_H + PANEL_H)], TH.bg, 2)
 

@@ -22,6 +22,18 @@ def to_uint8(img: np.ndarray) -> np.ndarray:
     return (np.clip(img, 0, 1) * 255).astype(np.uint8)
 
 
+def outline_mask(view: np.ndarray, mask: np.ndarray, colour: tuple[int, int, int] = (255, 60, 60)) -> np.ndarray:
+    """Draw the boundary of a boolean mask onto a uint8 frame, leaving the interior untouched."""
+    from scipy import ndimage
+
+    if not mask.any():
+        return view
+    edge = ndimage.binary_dilation(mask, iterations=2) & ~ndimage.binary_erosion(mask, iterations=1)
+    out = view.copy()
+    out[edge] = colour
+    return out
+
+
 def write_mp4(frames: Iterable[np.ndarray], path: str | Path, fps: float, crf: int = 18) -> Path:
     """Encode same-sized RGB uint8 frames as H.264/yuv420p MP4 (plays on LinkedIn, QuickTime, browsers)."""
     path = Path(path)

@@ -44,17 +44,26 @@ def background(frames: np.ndarray) -> np.ndarray:
     return np.median(frames[::4], axis=0).astype(np.uint8)
 
 
-def paint(frames: np.ndarray, masks, span: tuple[int, int]) -> np.ndarray:
-    bg = background(frames)
+def paint_masks(frames: np.ndarray, mask_list: list, start: int, bg: np.ndarray | None = None) -> np.ndarray:
+    """Erase `mask_list[i]` from frame `start + i`, replacing it with the empty-scene median."""
+    bg = background(frames) if bg is None else bg
     out = frames.copy()
-    for f in range(*span):
-        m = masks[0, f].astype(bool)
-        if not m.any():
+    for i, m in enumerate(mask_list):
+        f = start + i
+        if not m.any() or f >= len(frames):
             continue
         soft = ndimage.gaussian_filter(ndimage.binary_dilation(m, iterations=DILATE).astype(np.float32), FEATHER)
         a = np.clip(soft / max(soft.max(), 1e-6), 0, 1)[..., None]
         out[f] = (a * bg + (1 - a) * frames[f]).astype(np.uint8)
     return out
+
+
+def mask_sequence(masks, span: tuple[int, int]) -> list:
+    return [masks[0, f].astype(bool) for f in range(*span)]
+
+
+def paint(frames: np.ndarray, masks, span: tuple[int, int]) -> np.ndarray:
+    return paint_masks(frames, mask_sequence(masks, span), span[0])
 
 
 def curve(meter, frames: np.ndarray, total: int) -> np.ndarray:
