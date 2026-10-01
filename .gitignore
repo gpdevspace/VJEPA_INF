@@ -11,7 +11,7 @@ wheels/
 
 # Model weights, datasets, and rendered outputs
 checkpoints/
-data/
+/data/
 outputs/
 *.pth.tar
 *.safetensors
